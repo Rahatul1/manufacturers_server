@@ -18,6 +18,17 @@ async function run() {
         await client.connect();
         console.log("Connect")
         const partsCollection = client.db("manufacture-site").collection("parts");
+        const purchaseCollection = client.db("manufacture-site").collection("purchases");
+        //
+        app.get('/parts', async (req, res) => {
+            const query = {};
+            const cursor = partsCollection.find(query);
+            const parts = await cursor.toArray();
+            res.send(parts);
+        });
+
+        //book done
+
     }
     finally {
         //
