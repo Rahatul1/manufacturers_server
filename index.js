@@ -1,7 +1,7 @@
 const express = require('express')
 const cors = require('cors');
 require("dotenv").config()
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 const port = process.env.PORT || 4000;
 
@@ -16,7 +16,6 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function run() {
     try {
         await client.connect();
-        console.log("Connect")
         const partsCollection = client.db("manufacture-site").collection("parts");
         const purchaseCollection = client.db("manufacture-site").collection("purchases");
         //
@@ -26,8 +25,20 @@ async function run() {
             const parts = await cursor.toArray();
             res.send(parts);
         });
+        //
+        app.get("/parts/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const partsProducts = await partsCollection.findOne(query);
+            res.send(partsProducts);
+        });
 
         //book done
+        app.post('/purchase', async (req, res) => {
+            const newPurchase = req.body;
+            const results = await purchaseCollection.insertOne(newPurchase);
+            res.send(results);
+        })
 
     }
     finally {
