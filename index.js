@@ -41,6 +41,22 @@ async function run() {
             const parts = await cursor.toArray();
             res.send(parts);
         });
+
+        // product add 
+        app.post('/parts', async (req, res) => {
+            const newProduts = req.body;
+            const results = await partsCollection.insertOne(newProduts);
+            res.send(results);
+        })
+
+        // prduct delete
+        app.delete('/parts/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await partsCollection.deleteOne(query);
+            res.send(result);
+        })
+
         // admin roles
         app.get('/admin/:email', async (req, res) => {
             const email = req.params.email;
