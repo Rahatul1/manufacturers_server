@@ -41,7 +41,38 @@ async function run() {
             const parts = await cursor.toArray();
             res.send(parts);
         });
-        //
+        // admin roles
+        app.get('/admin/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = await userCollection.findOne({ email: email });
+            const isAdmin = user.role === 'admin';
+            res.send({ admin: isAdmin })
+        })
+
+        // user get
+        app.get('/user', varifayJWT, async (req, res) => {
+            const users = await userCollection.find().toArray();
+            res.send(users);
+        })
+
+        //admin make
+        app.put('/user/admin/:email', varifayJWT, async (req, res) => {
+            const email = req?.params?.email;
+            const requester = req.decoded.email;
+            const requesterAccunt = await userCollection.findOne({ email: requester });
+            if (requesterAccunt.role === 'admin') {
+                const filter = { email: email };
+                const updateDoc = {
+                    $set: { role: 'admin' },
+                };
+                const result = await userCollection.updateOne(filter, updateDoc)
+                res.send(result);
+            }
+            else {
+                res.status(403).send({ message: "Forbiden" })
+            }
+        })
+
         // put user
         app.put('/user/:email', async (req, res) => {
             const email = req?.params?.email;
