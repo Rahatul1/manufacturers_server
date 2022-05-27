@@ -34,6 +34,20 @@ async function run() {
         const partsCollection = client.db("manufacture-site").collection("parts");
         const purchaseCollection = client.db("manufacture-site").collection("purchases");
         const userCollection = client.db("manufacture-site").collection("users");
+        const upadteProfileCollection = client.db("manufacture-site").collection("upadteProfile");
+        //
+        // // varifay admin
+        // const verifyAdmin = async (req, res, next) => {
+        //     const requester = req.decoded.email;
+        //     const requesterAccount = await userCollection.findOne({ email: requester });
+        //     if (requesterAccount.role === 'admin') {
+        //         next();
+        //     }
+        //     else {
+        //         res.status(403).send({ message: 'forbidden' });
+        //     }
+        // }
+
         //
         app.get('/parts', async (req, res) => {
             const query = {};
@@ -68,6 +82,10 @@ async function run() {
         // user get
         app.get('/user', varifayJWT, async (req, res) => {
             const users = await userCollection.find().toArray();
+            res.send(users);
+        })
+        app.get('/manageAllOrder', varifayJWT, async (req, res) => {
+            const users = await purchaseCollection.find().toArray();
             res.send(users);
         })
 
@@ -111,24 +129,33 @@ async function run() {
         });
 
         //
-        app.delete('/purchase/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: ObjectId(id) };
-            const result = await purchaseCollection.deleteOne(query);
+        app.delete('/purchase/:email', varifayJWT, async (req, res) => {
+            const email = req?.params?.email;
+            const filter = { email: email };
+            const result = await purchaseCollection.deleteOne(filter);
             res.send(result);
-        })
-        //
+        });
+        // app.delete('/purchase/:id', async (req, res) => {
+        //     const id = req.params.id;
+        //     const query = { _id: ObjectId(id) };
+        //     const result = await purchaseCollection.deleteOne(query);
+        //     res.send(result);
+        // })
+
+        // 
         app.get('/purchase', varifayJWT, async (req, res) => {
-            const emailDecode = req.decoded.email;
-            const email = req.query.email;
-            if (email === emailDecode) {
+            const decodedEmail = req?.decoded?.email;
+            const email = req?.query?.email;
+            if (email === decodedEmail) {
                 const query = { email: email };
-                const bookings = await purchaseCollection.find(query).toArray();
-                return res.send(bookings);
+                const cursor = purchaseCollection.find(query);
+                const myItem = await cursor.toArray();
+                res.send(myItem);
             } else {
-                return res.status(403).send({ messag: 'Forbiden access' })
+                res.status(404).send({ message: 'Not Found' })
             }
         })
+
         //book done
         app.post('/purchase', async (req, res) => {
             const newPurchase = req.body;
@@ -136,6 +163,24 @@ async function run() {
             res.send(results);
         })
 
+        //---upadteProfileCollection
+        // app.get('/profileUpdate', async (req, res) => {
+        //     
+        //     const cursor = upadteProfileCollection.find(query);
+        //     const parts = await cursor.toArray();
+        //     res.send(parts);
+        // });
+
+        app.post('/profileUpdate', async (req, res) => {
+            const newPurchase = req.body;
+            const results = await upadteProfileCollection.insertOne(newPurchase);
+            res.send(results);
+        })
+        app.get('/profileUpdated', varifayJWT, async (req, res) => {
+            const query = {};
+            const users = await upadteProfileCollection.find(query).toArray();
+            res.send(users);
+        })
     }
     finally {
         //
