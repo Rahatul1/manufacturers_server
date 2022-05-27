@@ -5,6 +5,7 @@ require("dotenv").config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 const port = process.env.PORT || 4000;
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 
 
@@ -35,6 +36,7 @@ async function run() {
         const purchaseCollection = client.db("manufacture-site").collection("purchases");
         const userCollection = client.db("manufacture-site").collection("users");
         const upadteProfileCollection = client.db("manufacture-site").collection("upadteProfile");
+        const paymentCollection = client.db("manufacture-site").collection("payments");
         //
         // // varifay admin
         // const verifyAdmin = async (req, res, next) => {
@@ -47,6 +49,33 @@ async function run() {
         //         res.status(403).send({ message: 'forbidden' });
         //     }
         // }
+
+        //payment
+        app.post('create-payment-intent', varifayJWT, async (req, res) => {
+            const { service } = req.body;
+            const price = service.price;
+            const amount = price * 100;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                payment_method_type: ['card']
+            });
+            res.send({ clientSecret: paymentIntent.client_secret });
+        })
+        app.patch('/bookings/:id', varifayJWT, async (req, res) => {
+            const id = req.params.id;
+            const payment = req.body;
+            const filter = { _id: ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transactionId
+                }
+            }
+            const result = await paymentCollection.insertOne(payment);
+            const updateBooking = await purchaseCollection.updateOne(filter, updateDoc);
+            res.send(updateDoc);
+        })
 
         //
         app.get('/parts', async (req, res) => {
@@ -129,9 +158,9 @@ async function run() {
         });
 
         //
-        app.delete('/purchase/:email', varifayJWT, async (req, res) => {
-            const email = req?.params?.email;
-            const filter = { email: email };
+        app.delete('/purchase/:id', varifayJWT, async (req, res) => {
+            const id = req?.params?.id;
+            const filter = { _id: ObjectId(id) };
             const result = await purchaseCollection.deleteOne(filter);
             res.send(result);
         });
@@ -141,6 +170,14 @@ async function run() {
         //     const result = await purchaseCollection.deleteOne(query);
         //     res.send(result);
         // })
+
+        //
+        app.get('/purchase/:id', varifayJWT, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await purchaseCollection.findOne(query);
+            res.send(result);
+        })
 
         // 
         app.get('/purchase', varifayJWT, async (req, res) => {
@@ -170,6 +207,7 @@ async function run() {
         //     const parts = await cursor.toArray();
         //     res.send(parts);
         // });
+
 
         app.post('/profileUpdate', async (req, res) => {
             const newPurchase = req.body;
