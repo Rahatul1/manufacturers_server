@@ -54,7 +54,6 @@ async function run() {
         app.post('/create-payment-intent', varifayJWT, async (req, res) => {
             const { price } = req.body;
             // const price = service.price;
-            console.log(price)
             const amount = price * 100;
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
