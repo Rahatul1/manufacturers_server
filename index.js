@@ -37,6 +37,7 @@ async function run() {
         const userCollection = client.db("manufacture-site").collection("users");
         const upadteProfileCollection = client.db("manufacture-site").collection("upadteProfile");
         const paymentCollection = client.db("manufacture-site").collection("payments");
+        const reviewCollection = client.db("manufacture-site").collection("reviews");
         //
         // varifay admin
         const verifyAdmin = async (req, res, next) => {
@@ -77,7 +78,18 @@ async function run() {
             const updateBooking = await purchaseCollection.updateOne(filter, updateDoc);
             res.send(updateDoc);
         })
-
+        //
+        app.post('/review', async (req, res) => {
+            const result = await reviewCollection.insertOne(req.body);
+            res.send({ success: true, result });
+        })
+        //
+        app.get('reviews', async (req, res) => {
+            const query = {};
+            const cursor = reviewCollection.find(query);
+            const results = await cursor.toArray();
+            res.send(results);
+        })
         //
         app.get('/parts', async (req, res) => {
             const query = {};
