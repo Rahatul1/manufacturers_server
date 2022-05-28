@@ -52,19 +52,19 @@ async function run() {
 
         //payment
         app.post('/create-payment-intent', varifayJWT, async (req, res) => {
-            const { price } = req.body;
-            // const price = service.price;
+            const service = req.body;
+            const price = service.price;
             const amount = price * 100;
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
                 currency: "usd",
-                payment_method_type: ['card']
+                payment_method_types: ['card']
             });
             res.send({ clientSecret: paymentIntent.client_secret });
         })
 
         app.patch('/bookings/:id', varifayJWT, async (req, res) => {
-            const id = req.params.id;
+            const id = req?.params?.id;
             const payment = req.body;
             const filter = { _id: ObjectId(id) };
             const updateDoc = {
@@ -137,6 +137,15 @@ async function run() {
             }
         })
 
+        // admin
+        app.delete('/user/:id', varifayJWT, async (req, res) => {
+            const id = req?.params?.id;
+            const filter = { _id: ObjectId(id) };
+            const result = await userCollection.deleteOne(filter);
+            res.send(result);
+        });
+
+
         // put user
         app.put('/user/:email', async (req, res) => {
             const email = req?.params?.email;
@@ -151,7 +160,7 @@ async function run() {
             res.send({ result, token });
         })
         //
-        app.get("/parts/:id", varifayJWT, async (req, res) => {
+        app.get("/parts/:id", async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const partsProducts = await partsCollection.findOne(query);
@@ -159,7 +168,7 @@ async function run() {
         });
 
         //
-        app.delete('/purchase/:id', varifayJWT, async (req, res) => {
+        app.delete('/purchase/:id', async (req, res) => {
             const id = req?.params?.id;
             const filter = { _id: ObjectId(id) };
             const result = await purchaseCollection.deleteOne(filter);
