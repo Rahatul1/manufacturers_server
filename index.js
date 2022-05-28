@@ -38,22 +38,23 @@ async function run() {
         const upadteProfileCollection = client.db("manufacture-site").collection("upadteProfile");
         const paymentCollection = client.db("manufacture-site").collection("payments");
         //
-        // // varifay admin
-        // const verifyAdmin = async (req, res, next) => {
-        //     const requester = req.decoded.email;
-        //     const requesterAccount = await userCollection.findOne({ email: requester });
-        //     if (requesterAccount.role === 'admin') {
-        //         next();
-        //     }
-        //     else {
-        //         res.status(403).send({ message: 'forbidden' });
-        //     }
-        // }
+        // varifay admin
+        const verifyAdmin = async (req, res, next) => {
+            const requester = req.decoded.email;
+            const requesterAccount = await userCollection.findOne({ email: requester });
+            if (requesterAccount.role === 'admin') {
+                next();
+            }
+            else {
+                res.status(403).send({ message: 'forbidden' });
+            }
+        }
 
         //payment
-        app.post('create-payment-intent', varifayJWT, async (req, res) => {
-            const { service } = req.body;
-            const price = service.price;
+        app.post('/create-payment-intent', varifayJWT, async (req, res) => {
+            const { price } = req.body;
+            // const price = service.price;
+            console.log(price)
             const amount = price * 100;
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
@@ -62,6 +63,7 @@ async function run() {
             });
             res.send({ clientSecret: paymentIntent.client_secret });
         })
+
         app.patch('/bookings/:id', varifayJWT, async (req, res) => {
             const id = req.params.id;
             const payment = req.body;
@@ -93,8 +95,8 @@ async function run() {
         })
 
         // prduct delete
-        app.delete('/parts/:id', async (req, res) => {
-            const id = req.params.id;
+        app.delete('/parts/:id', varifayJWT, verifyAdmin, async (req, res) => {
+            const id = req?.params?.id;
             const query = { _id: ObjectId(id) };
             const result = await partsCollection.deleteOne(query);
             res.send(result);
@@ -113,7 +115,7 @@ async function run() {
             const users = await userCollection.find().toArray();
             res.send(users);
         })
-        app.get('/manageAllOrder', varifayJWT, async (req, res) => {
+        app.get('/manageAllOrder', varifayJWT, verifyAdmin, async (req, res) => {
             const users = await purchaseCollection.find().toArray();
             res.send(users);
         })
@@ -146,11 +148,11 @@ async function run() {
                 $set: user,
             };
             const result = await userCollection.updateOne(filter, updateDoc, options)
-            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '1h' })
+            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '1d' })
             res.send({ result, token });
         })
         //
-        app.get("/parts/:id", async (req, res) => {
+        app.get("/parts/:id", varifayJWT, async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const partsProducts = await partsCollection.findOne(query);
@@ -164,12 +166,7 @@ async function run() {
             const result = await purchaseCollection.deleteOne(filter);
             res.send(result);
         });
-        // app.delete('/purchase/:id', async (req, res) => {
-        //     const id = req.params.id;
-        //     const query = { _id: ObjectId(id) };
-        //     const result = await purchaseCollection.deleteOne(query);
-        //     res.send(result);
-        // })
+
 
         //
         app.get('/purchase/:id', varifayJWT, async (req, res) => {
@@ -200,21 +197,12 @@ async function run() {
             res.send(results);
         })
 
-        //---upadteProfileCollection
-        // app.get('/profileUpdate', async (req, res) => {
-        //     
-        //     const cursor = upadteProfileCollection.find(query);
-        //     const parts = await cursor.toArray();
-        //     res.send(parts);
-        // });
-
-
-        app.post('/profileUpdate', async (req, res) => {
+        app.post('/profileUpdate', verifyAdmin, async (req, res) => {
             const newPurchase = req.body;
             const results = await upadteProfileCollection.insertOne(newPurchase);
             res.send(results);
         })
-        app.get('/profileUpdated', varifayJWT, async (req, res) => {
+        app.get('/profileUpdated', varifayJWT, verifyAdmin, async (req, res) => {
             const query = {};
             const users = await upadteProfileCollection.find(query).toArray();
             res.send(users);
